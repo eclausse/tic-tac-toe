@@ -77,7 +77,7 @@ const TWO_ALIGN_POSITION: [(u16, u16); 24] = [
 struct XPosOPos(u16, u16);
 struct Position(usize, usize);
 
-#[derive(Debug,Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 struct Game {
     cell: [[CellState; 3]; 3],
 }
@@ -116,8 +116,8 @@ impl Game {
         for i in 0..3 {
             for j in 0..3 {
                 match self.cell[i][j] {
-                    CellState::CIRCLE => o_bits |= 1 << (i * 3) + (j + 1),
-                    CellState::CROSS => x_bits |= 1 << (i * 3) + (j + 1),
+                    CellState::CIRCLE => o_bits |= 1 << (i * 3) + j,
+                    CellState::CROSS => x_bits |= 1 << (i * 3) + j,
                     _ => (),
                 }
             }
@@ -138,7 +138,7 @@ impl Game {
         None
     }
 
-    pub fn evaluate(&self, player: CellState) -> u32 {
+    pub fn evaluate(&self, player: CellState) -> i32 {
         if player == CellState::EMPTY {
             panic!("Wrong argument: Player empty");
         }
@@ -148,6 +148,8 @@ impl Game {
             Some(x) => {
                 if x == player {
                     return 100;
+                } else {
+                    return -100;
                 }
             }
             _ => {}
@@ -157,8 +159,12 @@ impl Game {
         /* Case two align */
         let XPosOPos(x_bits, o_bits) = self.game_to_bits();
         for pos in &TWO_ALIGN_POSITION {
-            if player == CellState::CROSS && (pos.0 & x_bits) == pos.0 && (pos.1 & o_bits) != pos.1
-                || player == CellState::CIRCLE && (pos.0 & o_bits) == pos.0 && (pos.1 & x_bits) != pos.1
+            if (player == CellState::CROSS
+                && (pos.0 & x_bits) == pos.0
+                && (pos.1 & o_bits) == pos.1)
+                || (player == CellState::CIRCLE
+                    && (pos.0 & o_bits) == pos.0
+                    && (pos.1 & x_bits) == pos.1)
             {
                 score += 10;
             }
@@ -177,8 +183,8 @@ impl Game {
     }
 
     pub fn player_move(&mut self) {
-        let mut x: u8 = 0;
-        let mut y: u8 = 0;
+        let mut x: u8;
+        let mut y: u8;
         let mut valid = false;
 
         while !valid {
@@ -235,7 +241,7 @@ impl Display for Game {
 #[derive(Debug)]
 struct Node {
     game: Game,
-    utility: u32,
+    utility: i32,
     depth: u32,
     maximizing_player: CellState,
     childs: Vec<Box<Node>>,
@@ -245,7 +251,7 @@ impl Node {
     pub fn new(game: Game, depth: u32, maximizing_player: CellState) -> Self {
         Node {
             game,
-            utility: if depth % 2 == 0 { u32::MIN } else { u32::MAX },
+            utility: if depth % 2 == 0 { i32::MIN } else { i32::MAX },
             depth,
             maximizing_player,
             childs: Vec::new(),
@@ -253,11 +259,19 @@ impl Node {
     }
 
     pub fn populate(&mut self) {
+        if self.game.is_won().is_some() {
+            return;
+        }
+
         let possible_moves = self.game.get_possible_move();
 
-        for m in possible_moves {
+        for m in &possible_moves {
             let mut g = self.game.clone();
-            g.cell[m.0][m.1] = *self.maximizing_player.opposite();
+            if self.depth % 2 == 0 {
+                g.cell[m.0][m.1] = self.maximizing_player;
+            } else {
+                g.cell[m.0][m.1] = *self.maximizing_player.opposite();
+            }
             let n = Node::new(g.to_owned(), self.depth + 1, self.maximizing_player);
             self.childs.push(Box::new(n));
         }
@@ -267,6 +281,19 @@ impl Node {
         self.populate();
         for c in self.childs.iter_mut().map(|b| b.as_mut()) {
             c.generate_min_max();
+        }
+        if self.childs.is_empty() {
+            if self.depth % 2 == 0 {
+                self.utility = self.game.evaluate(self.maximizing_player);
+            } else {
+                self.utility = self.game.evaluate(*self.maximizing_player.opposite());
+            }
+        } else {
+            if self.depth % 2 == 0 {
+                self.utility = self.childs.iter().map(|c| c.utility).max().unwrap();
+            } else {
+                self.utility = self.childs.iter().map(|c| c.utility).min().unwrap();
+            }
         }
     }
 }
@@ -294,14 +321,10 @@ impl Tree {
 }
 
 fn main() {
-    let mut game = Game::new();
-    
-    let mut t = Tree::new(game, CellState::CIRCLE);
+    let mut g = Game::new();
+
+    let mut t = Tree::new(g, CellState::CIRCLE);
     t.generate_min_max();
 
-    //print!("{:#?}", );
-    match game.is_won() {
-        Some(p) => println!("{p}"),
-        None => eprintln!("No winner"),
-    }
+    print!("{:#?}", t);
 }
