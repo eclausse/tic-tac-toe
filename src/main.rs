@@ -1,4 +1,3 @@
-use std::clone;
 use std::fmt::Display;
 use std::io::{stdin, stdout, Write};
 
@@ -48,6 +47,7 @@ const WINNING_POSITION: [u16; 8] = [
 ];
 
 const TWO_ALIGN_POSITION: [(u16, u16); 24] = [
+    /* Bits to match ; Bit the other player must not match */
     (0b_110_000_000, 0b_001_000_000),
     (0b_011_000_000, 0b_100_000_000),
     (0b_101_000_000, 0b_010_000_000),
@@ -107,6 +107,21 @@ impl Game {
             }
         }
         res
+    }
+
+    pub fn get_one_difference(&self, b: &Self) -> Option<Position> {
+        for i in 0..3 {
+            for j in 0..3 {
+                if self.cell[i][j] != b.cell[i][j] {
+                    return Some(Position(i, j));
+                }
+            }
+        }
+        None
+    }
+
+    pub fn set_move(&mut self, pos: Position, player: CellState) {
+        self.cell[pos.0][pos.1] = player;
     }
 
     pub fn game_to_bits(&self) -> XPosOPos {
@@ -318,6 +333,15 @@ impl Tree {
     pub fn generate_min_max(&mut self) {
         self.0.generate_min_max();
     }
+
+    pub fn get_move(&self) -> Option<Position> {
+        if self.0.depth % 2 != 0 {
+            return None;
+        }
+        let best_node: &Node = &(**self.0.childs.iter().max_by_key(|c| c.utility).unwrap());
+
+        self.0.game.get_one_difference(&best_node.game)
+    }
 }
 
 fn main() {
@@ -325,6 +349,8 @@ fn main() {
 
     let mut t = Tree::new(g, CellState::CIRCLE);
     t.generate_min_max();
-
-    print!("{:#?}", t);
+    let p = t.get_move().unwrap();
+    g.set_move(p, CellState::CIRCLE);
+    print!("{g}");
+    //print!("{:#?}", t);
 }
