@@ -1,7 +1,8 @@
+use std::clone;
 use std::fmt::Display;
 use std::io::{stdin, stdout, Write};
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum CellState {
     CIRCLE,
     CROSS,
@@ -46,36 +47,37 @@ const WINNING_POSITION: [u16; 8] = [
     0b_001_010_100,
 ];
 
-const TWO_ALIGN_POSITION: [u16; 24] = [
-    0b_110_000_000,
-    0b_011_000_000,
-    0b_101_000_000,
-    0b_000_011_000,
-    0b_000_110_000,
-    0b_000_101_000,
-    0b_000_000_110,
-    0b_000_000_011,
-    0b_000_000_101,
-    0b_100_100_000,
-    0b_000_100_100,
-    0b_100_000_100,
-    0b_000_010_010,
-    0b_010_000_010,
-    0b_010_010_000,
-    0b_000_001_001,
-    0b_001_000_001,
-    0b_001_001_000,
-    0b_000_010_001,
-    0b_100_000_001,
-    0b_100_010_000,
-    0b_001_010_000,
-    0b_001_000_100,
-    0b_000_010_100,
+const TWO_ALIGN_POSITION: [(u16, u16); 24] = [
+    (0b_110_000_000, 0b_001_000_000),
+    (0b_011_000_000, 0b_100_000_000),
+    (0b_101_000_000, 0b_010_000_000),
+    (0b_000_011_000, 0b_000_100_000),
+    (0b_000_110_000, 0b_000_001_000),
+    (0b_000_101_000, 0b_000_010_000),
+    (0b_000_000_110, 0b_000_000_001),
+    (0b_000_000_011, 0b_000_000_100),
+    (0b_000_000_101, 0b_000_000_010),
+    (0b_100_100_000, 0b_000_000_100),
+    (0b_000_100_100, 0b_100_000_000),
+    (0b_100_000_100, 0b_000_100_000),
+    (0b_000_010_010, 0b_100_000_000),
+    (0b_010_000_010, 0b_000_010_000),
+    (0b_010_010_000, 0b_000_000_010),
+    (0b_000_001_001, 0b_001_000_000),
+    (0b_001_000_001, 0b_000_001_000),
+    (0b_001_001_000, 0b_000_000_001),
+    (0b_000_010_001, 0b_100_000_000),
+    (0b_100_000_001, 0b_000_010_000),
+    (0b_100_010_000, 0b_000_000_001),
+    (0b_001_010_000, 0b_000_000_100),
+    (0b_001_000_100, 0b_000_010_000),
+    (0b_000_010_100, 0b_001_000_000),
 ];
 
 struct XPosOPos(u16, u16);
+struct Position(usize, usize);
 
-#[derive(Clone, Copy)]
+#[derive(Debug,Clone, Copy)]
 struct Game {
     cell: [[CellState; 3]; 3],
 }
@@ -92,6 +94,19 @@ impl Game {
             panic!("Wrong argument")
         }
         self.cell[x as usize][y as usize] != CellState::EMPTY
+    }
+
+    pub fn get_possible_move(&self) -> Vec<Position> {
+        let mut res = Vec::new();
+        for i in 0..3 {
+            for j in 0..3 {
+                match self.cell[i][j] {
+                    CellState::EMPTY => res.push(Position(i, j)),
+                    _ => (),
+                }
+            }
+        }
+        res
     }
 
     pub fn game_to_bits(&self) -> XPosOPos {
@@ -132,25 +147,22 @@ impl Game {
         match self.is_won() {
             Some(x) => {
                 if x == player {
-                    return 1000;
+                    return 100;
                 }
             }
             _ => {}
         }
 
         let mut score = 0;
-
         /* Case two align */
         let XPosOPos(x_bits, o_bits) = self.game_to_bits();
         for pos in &TWO_ALIGN_POSITION {
-            if player == CellState::CROSS && (pos & x_bits) == *pos {
-                score += 10;
-            }
-            if player == CellState::CIRCLE && (pos & o_bits) == *pos {
+            if player == CellState::CROSS && (pos.0 & x_bits) == pos.0 && (pos.1 & o_bits) != pos.1
+                || player == CellState::CIRCLE && (pos.0 & o_bits) == pos.0 && (pos.1 & x_bits) != pos.1
+            {
                 score += 10;
             }
         }
-
         score
     }
 
@@ -158,10 +170,10 @@ impl Game {
         let mut s = String::new();
         let _ = stdout().flush();
         stdin()
-                .read_line(&mut s)
-                .ok()
-                .and_then(|_| s.trim().parse::<u8>().ok())
-                .filter(|n| *n < 4 && *n > 0)
+            .read_line(&mut s)
+            .ok()
+            .and_then(|_| s.trim().parse::<u8>().ok())
+            .filter(|n| *n < 4 && *n > 0)
     }
 
     pub fn player_move(&mut self) {
@@ -171,8 +183,7 @@ impl Game {
 
         while !valid {
             print!("Please enter x: ");
-            match Self::get_input()
-            {
+            match Self::get_input() {
                 Some(n) => x = n,
                 None => {
                     eprintln!("[Error]: Incorrect input");
@@ -181,8 +192,7 @@ impl Game {
             }
 
             print!("Please enter y: ");
-            match Self::get_input()
-            {
+            match Self::get_input() {
                 Some(n) => {
                     y = n;
                     valid = true;
@@ -222,6 +232,7 @@ impl Display for Game {
     }
 }
 
+#[derive(Debug)]
 struct Node {
     game: Game,
     utility: u32,
@@ -234,18 +245,33 @@ impl Node {
     pub fn new(game: Game, depth: u32, maximizing_player: CellState) -> Self {
         Node {
             game,
-            utility: game.evaluate(if depth % 2 == 0 {
-                maximizing_player
-            } else {
-                *maximizing_player.opposite()
-            }),
+            utility: if depth % 2 == 0 { u32::MIN } else { u32::MAX },
             depth,
             maximizing_player,
             childs: Vec::new(),
         }
     }
+
+    pub fn populate(&mut self) {
+        let possible_moves = self.game.get_possible_move();
+
+        for m in possible_moves {
+            let mut g = self.game.clone();
+            g.cell[m.0][m.1] = *self.maximizing_player.opposite();
+            let n = Node::new(g.to_owned(), self.depth + 1, self.maximizing_player);
+            self.childs.push(Box::new(n));
+        }
+    }
+
+    pub fn generate_min_max(&mut self) {
+        self.populate();
+        for c in self.childs.iter_mut().map(|b| b.as_mut()) {
+            c.generate_min_max();
+        }
+    }
 }
 
+#[derive(Debug)]
 struct Tree(Node);
 
 impl Tree {
@@ -261,15 +287,19 @@ impl Tree {
             childs: Vec::new(),
         })
     }
+
+    pub fn generate_min_max(&mut self) {
+        self.0.generate_min_max();
+    }
 }
 
 fn main() {
     let mut game = Game::new();
-    game.player_move();
-    game.player_move();
-    game.player_move();
+    
+    let mut t = Tree::new(game, CellState::CIRCLE);
+    t.generate_min_max();
 
-    print!("{game}");
+    //print!("{:#?}", );
     match game.is_won() {
         Some(p) => println!("{p}"),
         None => eprintln!("No winner"),
