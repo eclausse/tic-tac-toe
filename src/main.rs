@@ -77,7 +77,7 @@ const TWO_ALIGN_POSITION: [(u16, u16); 24] = [
 struct XPosOPos(u16, u16);
 struct Position(usize, usize);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 struct Game {
     cell: [[CellState; 3]; 3],
 }
@@ -335,12 +335,24 @@ impl Tree {
     }
 
     pub fn get_move(&self) -> Option<Position> {
-        if self.0.depth % 2 != 0 {
+        if self.0.depth % 2 == 0 {
             return None;
         }
         let best_node: &Node = &(**self.0.childs.iter().max_by_key(|c| c.utility).unwrap());
 
         self.0.game.get_one_difference(&best_node.game)
+    }
+
+    pub fn set_move(&mut self, pos: Position) {
+        if self.0.depth % 2 != 0 {
+            return;
+        }
+        /* Create the new game */
+        let mut g = self.0.game.clone();
+        g.set_move(pos, self.0.maximizing_player);
+
+        /* Find the new game node */
+        self.0 = **self.0.childs.iter().find(|&e| e.game == g).unwrap();
     }
 }
 
