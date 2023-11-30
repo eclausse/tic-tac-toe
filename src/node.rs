@@ -1,9 +1,8 @@
 use std::fmt::Display;
-use std::io::{stdin, stdout, Write};
 
 use crate::game::*;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Node {
     pub game: Game,
     pub utility: i32,
@@ -49,16 +48,23 @@ impl Node {
         }
         if self.childs.is_empty() {
             if self.depth % 2 == 0 {
-                self.utility = self.game.evaluate(self.maximizing_player);
+                self.utility = -self.game.evaluate(*self.maximizing_player.opposite());
             } else {
-                self.utility = self.game.evaluate(*self.maximizing_player.opposite());
+                self.utility = self.game.evaluate(self.maximizing_player);
             }
         } else {
             if self.depth % 2 == 0 {
-                self.utility = self.childs.iter().map(|c| c.utility).max().unwrap();
-            } else {
                 self.utility = self.childs.iter().map(|c| c.utility).min().unwrap();
+            } else {
+                self.utility = self.childs.iter().map(|c| c.utility).max().unwrap();
             }
         }
+        self.utility -= self.depth as i32;
+    }
+}
+
+impl Display for Node {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
     }
 }

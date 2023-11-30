@@ -1,6 +1,3 @@
-use std::fmt::Display;
-use std::io::{stdin, stdout, Write};
-
 mod game;
 mod node;
 
@@ -28,22 +25,24 @@ impl Tree {
         self.0.generate_min_max();
     }
 
-    pub fn get_move(&self) -> Option<Position> {
-        if self.0.depth % 2 == 0 {
+    pub fn get_move(&mut self) -> Option<Position> {
+        if self.0.depth % 2 != 0 {
             return None;
         }
-        let best_node: &Node = self.0.childs.iter().max_by_key(|c| c.as_ref().utility).unwrap();
+        let best_node: &Node = self
+            .0
+            .childs
+            .iter()
+            .max_by_key(|c| c.as_ref().utility)
+            .unwrap();
 
         self.0.game.get_one_difference(&best_node.game)
     }
 
-    pub fn set_move(&mut self, pos: Position) {
-        if self.0.depth % 2 != 0 {
-            return;
-        }
+    pub fn set_move(&mut self, pos: Position, player: CellState) {
         /* Create the new game */
         let mut g = self.0.game.clone();
-        g.set_move(pos, self.0.maximizing_player);
+        g.set_move(&pos, player);
 
         /* Find the new game node */
         self.0.childs.retain(|e| e.game == g);
@@ -52,12 +51,57 @@ impl Tree {
 }
 
 fn main() {
-    let mut g = Game::new();
+    /* Create a game */
+    let mut board = Game::new();
 
-    let mut t = Tree::new(g, CellState::CIRCLE);
-    t.generate_min_max();
-    let p = t.get_move().unwrap();
-    g.set_move(p, CellState::CIRCLE);
-    print!("{g}");
-    //print!("{:#?}", t);
+    let mut position_played;
+    let mut prev_game: Game = board;
+
+    /* Player first move */
+    board.player_move();
+    position_played = prev_game.get_one_difference(&board).unwrap();
+    board.set_move(&position_played, CellState::CROSS);
+
+    /* Create min max */
+    let mut possibility_tree = Tree::new(board.clone(), CellState::CIRCLE);
+    possibility_tree.generate_min_max();
+
+    while board.game_continue() {
+        position_played = possibility_tree.get_move().unwrap();
+        board.set_move(&position_played, CellState::CIRCLE);
+        possibility_tree.set_move(position_played, CellState::CIRCLE);
+
+        print!("{board}");
+
+        if !board.game_continue() {
+            break;
+        }
+
+        prev_game = board.clone();
+        board.player_move();
+        position_played = prev_game.get_one_difference(&board).unwrap();
+        board.set_move(&position_played, CellState::CROSS);
+        possibility_tree.set_move(position_played, CellState::CROSS);
+    }
 }
+
+/*
+g.cell[0][0] = CellState::CROSS;
+    g.cell[1][0] = CellState::CROSS;
+    g.cell[2][0] = CellState::CROSS;
+    g.cell[2][2] = CellState::CROSS;
+
+    g.cell[2][0] = CellState::CIRCLE;
+    g.cell[1][1] = CellState::CIRCLE;
+    g.cell[1][2] = CellState::CIRCLE;
+
+    print!("{g}");
+
+    p = t.get_move().unwrap();
+    g.set_move(&p, CellState::CIRCLE);
+    t.set_move(p, CellState::CIRCLE);
+
+    print!("{g}");
+
+    print!("{:#?}", t);
+*/

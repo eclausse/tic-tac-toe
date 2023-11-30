@@ -89,11 +89,12 @@ impl Game {
         }
     }
 
-    pub fn is_empty_cell(&self, x: u8, y: u8) -> bool {
+    pub fn is_empty_cell(&self, x: usize, y: usize) -> bool {
         if x > 2 || y > 2 {
             panic!("Wrong argument")
         }
-        self.cell[x as usize][y as usize] != CellState::EMPTY
+        print!("{self}");
+        self.cell[x][y] == CellState::EMPTY
     }
 
     pub fn get_possible_move(&self) -> Vec<Position> {
@@ -120,7 +121,7 @@ impl Game {
         None
     }
 
-    pub fn set_move(&mut self, pos: Position, player: CellState) {
+    pub fn set_move(&mut self, pos: &Position, player: CellState) {
         self.cell[pos.0][pos.1] = player;
     }
 
@@ -151,6 +152,42 @@ impl Game {
             }
         }
         None
+    }
+
+    pub fn is_draw(&self) -> bool {
+        for i in 0..3 {
+            for j in 0..3 {
+                if self.is_empty_cell(i, j) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    pub fn game_continue(&self) -> bool {
+        if self.is_draw() {
+            print!("DRAW");
+            return false;
+        }
+        match self.is_won() {
+            Some(i) => match i {
+                CellState::CROSS => {
+                    print!("Vous avez gagner");
+                    return false;
+                }
+                CellState::CIRCLE => {
+                    print!("Vous avez perdu");
+                    return false;
+                }
+                _ => {
+                    return true;
+                }
+            },
+            None => {
+                return true;
+            }
+        }
     }
 
     pub fn evaluate(&self, player: CellState) -> i32 {
@@ -224,8 +261,8 @@ impl Game {
                 }
             }
 
-            if !self.is_empty_cell(x - 1, y - 1) {
-                self.cell[(y - 1) as usize][(x - 1) as usize] = CellState::CROSS;
+            if self.is_empty_cell((x - 1).into(), (y - 1).into()) {
+                self.cell[(x - 1) as usize][(y - 1) as usize] = CellState::CROSS;
             } else {
                 eprintln!("[Error] Cell already taken");
                 valid = false;
