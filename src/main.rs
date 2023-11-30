@@ -8,20 +8,20 @@ use crate::game::*;
 use crate::node::*;
 
 #[derive(Debug)]
-struct Tree(Node);
+struct Tree(Box<Node>);
 
 impl Tree {
     pub fn new(game: Game, maximizing_player: CellState) -> Self {
         if maximizing_player == CellState::EMPTY {
             panic!("Wrong argument");
         }
-        Tree(Node {
+        Tree(Box::new(Node {
             game,
             utility: 0,
             depth: 0,
             maximizing_player,
             childs: Vec::new(),
-        })
+        }))
     }
 
     pub fn generate_min_max(&mut self) {
@@ -32,7 +32,7 @@ impl Tree {
         if self.0.depth % 2 == 0 {
             return None;
         }
-        let best_node: &Node = &(**self.0.childs.iter().max_by_key(|c| c.utility).unwrap());
+        let best_node: &Node = self.0.childs.iter().max_by_key(|c| c.as_ref().utility).unwrap();
 
         self.0.game.get_one_difference(&best_node.game)
     }
@@ -46,7 +46,8 @@ impl Tree {
         g.set_move(pos, self.0.maximizing_player);
 
         /* Find the new game node */
-        //self.0 = **self.0.childs.iter().find(|&e| e.game == g).unwrap();
+        self.0.childs.retain(|e| e.game == g);
+        self.0 = self.0.childs.pop().unwrap();
     }
 }
 
