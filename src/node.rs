@@ -54,12 +54,11 @@ impl Node {
             }
         } else {
             if self.depth % 2 == 0 {
-                self.utility = self.childs.iter().map(|c| c.utility).min().unwrap();
-            } else {
                 self.utility = self.childs.iter().map(|c| c.utility).max().unwrap();
+            } else {
+                self.utility = self.childs.iter().map(|c| c.utility).min().unwrap();
             }
         }
-        self.utility -= self.depth as i32;
     }
 }
 

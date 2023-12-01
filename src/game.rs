@@ -60,7 +60,7 @@ const TWO_ALIGN_POSITION: [(u16, u16); 24] = [
     (0b_100_100_000, 0b_000_000_100),
     (0b_000_100_100, 0b_100_000_000),
     (0b_100_000_100, 0b_000_100_000),
-    (0b_000_010_010, 0b_100_000_000),
+    (0b_000_010_010, 0b_010_000_000),
     (0b_010_000_010, 0b_000_010_000),
     (0b_010_010_000, 0b_000_000_010),
     (0b_000_001_001, 0b_001_000_000),
@@ -154,7 +154,7 @@ impl Game {
         None
     }
 
-    pub fn is_draw(&self) -> bool {
+    pub fn is_over(&self) -> bool {
         for i in 0..3 {
             for j in 0..3 {
                 if self.is_empty_cell(i, j) {
@@ -166,25 +166,25 @@ impl Game {
     }
 
     pub fn game_continue(&self) -> bool {
-        if self.is_draw() {
-            print!("DRAW");
-            return false;
-        }
         match self.is_won() {
             Some(i) => match i {
                 CellState::CROSS => {
-                    print!("Vous avez gagner");
+                    print!("You won");
                     return false;
                 }
                 CellState::CIRCLE => {
-                    print!("Vous avez perdu");
+                    print!("You lost");
                     return false;
                 }
                 _ => {
-                    return true;
+                    panic!("");
                 }
             },
             None => {
+                if self.is_over() {
+                    print!("It's a draw");
+                    return false;
+                }
                 return true;
             }
         }
@@ -211,14 +211,14 @@ impl Game {
         /* Case two align */
         let XPosOPos(x_bits, o_bits) = self.game_to_bits();
         for pos in &TWO_ALIGN_POSITION {
-            if (player == CellState::CROSS
-                && (pos.0 & x_bits) == pos.0
-                && (pos.1 & o_bits) == pos.1)
-                || (player == CellState::CIRCLE
-                    && (pos.0 & o_bits) == pos.0
-                    && (pos.1 & x_bits) == pos.1)
+            if player == CellState::CIRCLE && (pos.0 & o_bits) == pos.0 && (pos.1 & x_bits) != pos.1
             {
                 score += 10;
+            } else if player == CellState::CROSS
+                && (pos.0 & x_bits) == pos.0
+                && (pos.1 & o_bits) != pos.1
+            {
+                score -= 10;
             }
         }
         score
