@@ -58,7 +58,7 @@ fn main() {
     let mut prev_game: Game = board;
 
     /* Player first move */
-    //print!("{board}");
+    print!("{board}");
     board.player_move();
     position_played = prev_game.get_one_difference(&board).unwrap();
     board.set_move(&position_played, CellState::CROSS);
@@ -72,7 +72,7 @@ fn main() {
         board.set_move(&position_played, CellState::CIRCLE);
         possibility_tree.set_move(position_played, CellState::CIRCLE);
 
-        //print!("{board}");
+        print!("{board}");
 
         if !board.game_continue() {
             break;
@@ -85,57 +85,3 @@ fn main() {
         possibility_tree.set_move(position_played, CellState::CROSS);
     }
 }
-
-/*
-
-    board.cell[0][0] = CellState::CROSS;
-    board.cell[1][0] = CellState::CROSS;
-    board.cell[2][0] = CellState::CROSS;
-    board.cell[2][2] = CellState::CROSS;
-
-    board.cell[2][0] = CellState::CIRCLE;
-    board.cell[1][1] = CellState::CIRCLE;
-    board.cell[1][2] = CellState::CIRCLE;
-
-    print!("{board}");
-
-    print!("{}", board.evaluate(CellState::CROSS));
-
-
-    board.cell[0][0] = CellState::CROSS;
-    board.cell[0][2] = CellState::CROSS;
-    board.cell[1][1] = CellState::CROSS;
-    board.cell[2][0] = CellState::CIRCLE;
-    board.cell[2][2] = CellState::CIRCLE;
-
-    board.cell[2][1] = CellState::CROSS;
-    board.cell[1][1] = CellState::CIRCLE;
-    board.cell[1][2] = CellState::CIRCLE;
-
-
-
-    board.cell[0][0] = CellState::CROSS;
-    board.cell[2][2] = CellState::CROSS;
-    board.cell[1][2] = CellState::CROSS;
-
-    board.cell[1][0] = CellState::CIRCLE;
-    board.cell[1][1] = CellState::CIRCLE;
-
-    print!("{board}");
-
-    //print!("{}", board.evaluate(CellState::CIRCLE));
-
-    let mut possibility_tree = Tree::new(board, CellState::CIRCLE);
-    possibility_tree.generate_min_max();
-
-    print!("{:#?}", possibility_tree);
-
-    position_played = possibility_tree.get_move().unwrap();
-    board.set_move(&position_played, CellState::CIRCLE);
-
-    print!("{board}");
-
-    return;
-
-
-*/

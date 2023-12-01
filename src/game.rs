@@ -93,7 +93,6 @@ impl Game {
         if x > 2 || y > 2 {
             panic!("Wrong argument")
         }
-        print!("{self}");
         self.cell[x][y] == CellState::EMPTY
     }
 
