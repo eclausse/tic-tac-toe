@@ -55,9 +55,50 @@ impl Node {
         } else {
             if self.depth % 2 == 0 {
                 self.utility = self.childs.iter().map(|c| c.utility).max().unwrap();
+                self.utility -= self.depth as i32;
             } else {
                 self.utility = self.childs.iter().map(|c| c.utility).min().unwrap();
+                self.utility += self.depth as i32;
             }
+        }
+    }
+
+    pub fn generate_min_max_alpha_beta_pruning(&mut self, mut alpha: i32, mut beta: i32) {
+        self.populate();
+        if self.childs.is_empty() {
+            if self.depth % 2 == 0 {
+                self.utility = -self.game.evaluate(*self.maximizing_player.opposite());
+            } else {
+                self.utility = self.game.evaluate(self.maximizing_player);
+            }
+            return;
+        }
+        let mut value;
+        let (a, b) = (alpha, beta);
+        if self.depth % 2 == 0 {
+            value = i32::MIN;
+            for c in self.childs.iter_mut().map(|b| b.as_mut()) {
+                c.generate_min_max_alpha_beta_pruning(a, b);
+                value = value.max(c.utility);
+                alpha = value.max(alpha);
+                if value >= beta {
+                    println!("Pruning at {}: {value} {beta}", self.depth);
+                    break;
+                }
+            }
+            self.utility = value - self.depth as i32;
+        } else {
+            value = i32::MAX;
+            for c in self.childs.iter_mut().map(|b| b.as_mut()) {
+                c.generate_min_max_alpha_beta_pruning(a, b);
+                value = value.min(c.utility);
+                beta = value.min(beta);
+                if value <= alpha {
+                    println!("Pruning at {}: {value} {alpha}", self.depth);
+                    break;
+                }
+            }
+            self.utility = value + self.depth as i32;
         }
     }
 }

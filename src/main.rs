@@ -22,7 +22,8 @@ impl Tree {
     }
 
     pub fn generate_min_max(&mut self) {
-        self.0.generate_min_max();
+        self.0
+            .generate_min_max_alpha_beta_pruning(i32::MIN, i32::MAX);
     }
 
     pub fn get_move(&mut self) -> Option<Position> {
