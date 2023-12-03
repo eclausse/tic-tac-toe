@@ -82,7 +82,6 @@ impl Node {
                 value = value.max(c.utility);
                 alpha = value.max(alpha);
                 if value >= beta {
-                    println!("Pruning at {}: {value} {beta}", self.depth);
                     break;
                 }
             }
@@ -94,7 +93,6 @@ impl Node {
                 value = value.min(c.utility);
                 beta = value.min(beta);
                 if value <= alpha {
-                    println!("Pruning at {}: {value} {alpha}", self.depth);
                     break;
                 }
             }
